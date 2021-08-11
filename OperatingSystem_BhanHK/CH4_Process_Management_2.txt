@@ -1,0 +1,77 @@
+	ss Creation)
+
+-copy-on-write(COW) : 쓰기가 발생됐을 때 그때 Copy 하겠다. 
+-내용이 바뀔때 그걸 카피해서 메모리를 만들고, 그 전에는 부모의 주소공간의 데이터(자원)을 계속 공유하고 있다는 것이다.  
+
+## 새로운 프로세스를 생성하는 시스템 콜: fork()
+- 일단 복제 생성한 다음, 필요한 경우 새로운 프로그램을 덮어씌운다. 
+
+
+## exec() 시스템 콜 : 새로운 프로그램으로 덮어씌운다. 즉, 프로세스가 자식 프로세스의 코드를 실행하다가 exec()함수로 date함수를 호출할 때 date함수를 실행하고 종료하게 된다.
+                  이때, 다시 이전 프로그램을 실행시킬 수 없다. 되돌릴 수 없다.
+
+
+##wait() 시스템 콜 : 프로세스 A가 wait() 시스템 콜을 호출하면 
+	- 커널은 child가 종료될 때까지 A를 sleep 시킨다(block상태)
+	- Child process가 종료되면 커널은 프로세스 A를 깨운다.(ready 상태)
+	=> 자식 프로세스를 생성한 다음 보통 wait() 실행된다.자식 프로세스가 종료되길 기다리면서 block됨. 종료되면 ready로 바뀌어서 부모 프로세스가 cpu제어권을 얻게된다. 
+	
+
+##exit() 시스템 콜 : 프로그램을 종료시킬 때 호출하는 시스템 콜/ 프로세스의 종료
+	- 자발적 종료 : 마지막 statement 수행 후 exit() 시스템 콜을 통해 프로그램에 명시적으로 적어주지 않아도 main 함수가 리턴되는 위치에 컴파일러가 넣어줌
+	- 비자발적 종료 :
+		- 부모 프로세스가 자식 프로세스를 강제 종료시킴 : 자식 프로세스가 한계치를 넘어서는 자원 요청, 자식에게 할당된 태스크가 더 이상 필요하지 않음
+		- 키보드로 kill, break 등을 친 경우
+		- 부모가 종료하는 경우 : 부모 프로세스가 종료하기 전에 자식들이 먼저 종료됨
+		
+##프로세스와 관련한 시스템 콜
+	- fork() L create a chil(copy)
+	- exect() :  overlay new image
+	- wait() : sleep until child is done
+	- exit() : frees all the resources, notify parent
+
+ 
+## shared memory 시스템 콜을 사용한다고 OS를 통해 커널로 요청을 한다. 그렇게 되면 프로세스 A와 프로세스B의 물리적으로 공유하는 메모리 공간에 대한 접근권을 얻게 되고, 작업을 진행하게 된다. 그러기 위해서 프로세스 A와 프로세스B의 협력하기 전의 주의해야되는 사항들이 존재한다. 
+
+
+##프로세스 간 협력하기
+- 독립적 프로세스 (Independent process) : 프로세스가 각자의 주소 공간을 가지고 수행되므로 원칙적으로 하나의 프로세스는 다른 프로세스의 수행에 영향을 미치지 못함
+- 협력 프로세스 ( Cooperationg process) : 프로세스 협력 메커니즘을 통해 하나의 프로세스가 다른 프로세스의 수행에 영향을 미칠 수 있음
+- 프로세스 간 협력 메커니즘( IPC : Interprocess Communication) 
+	- 메시지를 전달하는 방법 : message passing :  커널을 통해 메시지를 전달
+	- 주소 공간을 공유하는 방법 : 
+		- shared memory : 서로 다른 프로세스 간에도 일부 주소 공간을 공유하게 하는 shared memory 메커니즘이 있음
+		- ** thread : thread는 사실상 하나의 프로세스이므로 프로세스 간 협력으로보기는 어렵지만 동일한 process를 구성하는 thread들 간에는 주소 공간을 공유하는 협력이 가능
+		
+
+##CPU and I/O Bursts in Programm Execution
+- CPU만 연속적으로 사용하는 단계, I/OS 연속적으로 사용하는 단계(Bursts) 들이 반복해서 존재한다. 어떤 프로그램이든 cpu, I/O 버스트를 번갈아가면서 존재한다. 
+ 
+ 
+##CPU bound job과 I/O bound job 
+-CPU-burst Time 그래프를 보게 되면, cpu burst 빈도수는 굉장히 낮고, I/O burst 는 빈도수가 굉장히 잦다는 것을 알 수 있다. CPU만 연속적으로 사용하는 경우는 적고, 중간에 사용자들의 요청에 의해 I/O 작업을 했다가 cpu 작업을 하는 경우가 더 많다는 것을 알 수 있다. 
+
+=> 여러종류의 job(=process)이 섞여 있기 때문에 CPU 스케쥴링이 필요하다.
+@ Interactive job에게 적절한 response 제공 요망
+@ CPU와 I/O 장치 등 시스템 자원을 골고루 효율적으로 사용
+
+
+##프로세스의 특성 분류
+- 프로세스는 그 특성에 따라 다음 두 가지로 나눔
+	-I/O-bound process : cpu를 잡고 계산하는 시간보다 I/O에 많은 시간이 필요한 job, many short CPU bursts.
+	- CPU-bound process : 계산 위주의 job, few very long CPU bursts.
+
+
+## CPU scheduler & Dispatcher (=운영체제에서 CPU를 제어하기 위한 프로그램임, 하드웨어X, 소프트웨어 X)
+-CPU Scheduler : Ready 상태의 프로세스 중에서 이번에 CPU를 줄 프로세스를 고른다.
+
+-Dispatcher (=운영체제 커널 코드) : CPU의 제어권을 CPU scheduler에 의해 선택된 프로세스에게 넘긴다, 이 과정을 context switch(문맥 교환)라고 한다.
+
+-CPU 스케쥴링이 필요한 경우는 프로세스에게 다음과 같은 상태 변화가 있는 경우이다.
+	1. Running -> Blocked (ex,  I/O 요청하는 시스템 콜)
+	2. Running -> Ready (ex, 할당시간 만료로 timer interrupt)
+	3. Blocked -> Ready(ex, I/O 완료 후 인터럽트)
+	4. Terminate
+	** 1, 4에서의 스케쥴링은 nonpreemptive(=강제로 빼앗지 않고 자진 반납)
+	** All other scheduling is preemptive(=강제로 빼앗음)("%d\n", sizeof(a));
+
